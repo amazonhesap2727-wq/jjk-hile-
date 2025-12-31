@@ -8,7 +8,7 @@
 local Timing_1 = 0.29  -- The "Golden" delay for the first hit
 local Timing_2 = 0.30  -- Slightly longer for the follow-up momentum
 
-local TriggerKey = Enum.KeyCode.W       -- Key to Activate
+local TriggerKey = Enum.KeyCode.V       -- Key to Activate
 local MoveKey    = Enum.KeyCode.Three   -- The Move Key (3)
 
 -- // SERVICES // --
