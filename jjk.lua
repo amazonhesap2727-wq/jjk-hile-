@@ -1,79 +1,47 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Lib/UI-Libraries/main/Venyx/Source.lua"))()
-local Window = Library.new("JJS Ultra Panel", 5013109572)
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- // SERVICES // --
-local players = game:GetService("Players")
-local runService = game:GetService("RunService")
-local userInputService = game:GetService("UserInputService")
-local vIM = game:GetService("VirtualInputManager")
+local Window = Rayfield:CreateWindow({
+   Name = "JJS Modie Panel",
+   LoadingTitle = "Baslatiliyor...",
+   LoadingSubtitle = "by Modie",
+   ConfigurationSaving = { Enabled = false }
+})
 
--- // SETTINGS // --
-local ESP_Enabled = false
-local ItemESP_Enabled = false
-local AutoBF_Enabled = false
+local MainTab = Window:CreateTab("Ana Menu", 4483362458)
+
+-- // AYARLAR // --
+local AutoBF = false
 local BF_Key = Enum.KeyCode.V
-local MenuKey = Enum.KeyCode.Insert
 
--- // TABS // --
-local MainTab = Window.add_page("Ana Menü")
-local CombatSection = MainTab.add_section("Dövüş")
-local VisualSection = MainTab.add_section("Görsel (ESP)")
+-- // AUTO BLACK FLASH // --
+MainTab:CreateToggle({
+   Name = "Auto Black Flash (V)",
+   CurrentValue = false,
+   Callback = function(Value) AutoBF = Value end,
+})
 
--- // AUTO BLACK FLASH LOGIC // --
-CombatSection.add_toggle("Auto Black Flash (V)", false, function(state)
-    AutoBF_Enabled = state
-end)
-
-userInputService.InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode == BF_Key and AutoBF_Enabled then
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == BF_Key and AutoBF then
+        local vIM = game:GetService("VirtualInputManager")
         vIM:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
         vIM:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
         task.wait(0.29)
         vIM:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
         vIM:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
-        task.wait(0.30)
-        vIM:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
-        vIM:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
     end
 end)
 
--- // PLAYER ESP // --
-VisualSection.add_toggle("Oyuncu ESP", false, function(state)
-    ESP_Enabled = state
-    if not state then
-        for _, v in pairs(players:GetPlayers()) do
-            if v.Character and v.Character:FindFirstChild("Highlight") then
-                v.Character.Highlight:Destroy()
-            end
-        end
-    end
-end)
+-- // ESP SISTEMI // --
+MainTab:CreateButton({
+   Name = "Oyuncu ESP (Highlight)",
+   Callback = function()
+       for _, v in pairs(game.Players:GetPlayers()) do
+           if v ~= game.Players.LocalPlayer and v.Character then
+               local hl = Instance.new("Highlight", v.Character)
+               hl.FillColor = Color3.fromRGB(255, 0, 0)
+           end
+       end
+   end,
+})
 
-runService.RenderStepped:Connect(function()
-    if ESP_Enabled then
-        for _, v in pairs(players:GetPlayers()) do
-            if v ~= players.LocalPlayer and v.Character then
-                if not v.Character:FindFirstChild("Highlight") then
-                    local hl = Instance.new("Highlight", v.Character)
-                    hl.FillColor = Color3.fromRGB(255, 0, 0)
-                end
-            end
-        end
-    end
-end)
-
--- // ITEM ESP // --
-VisualSection.add_toggle("Eşya ESP", false, function(state)
-    ItemESP_Enabled = state
-end)
-
--- // MENU TOGGLE // --
-local toggled = true
-userInputService.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == MenuKey then
-        toggled = not toggled
-        Window.toggle()
-    end
-end)
-
-print("JJS Ultra Panel Yuklendi! INSERT ile ac/kapat.")
+Rayfield:Notify({ Title = "Yuklendi", Content = "Menuyu acmak icin INSERT tusunu kullan.", Duration = 5 })
