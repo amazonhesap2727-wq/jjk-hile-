@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "JJS Modie Ultra Panel",
-   LoadingTitle = "ESP ve Esya Takibi Yukleniyor...",
+   Name = "JJS Modie Ultra Panel Fixed",
+   LoadingTitle = "Filtreli ESP Yukleniyor...",
    LoadingSubtitle = "by Modie",
    ConfigurationSaving = { Enabled = false }
 })
@@ -14,23 +14,26 @@ local AutoBF = false
 local ESP_Active = false
 local ItemESP_Active = false
 
--- // ITEM ESP FONKSIYONU // --
+-- // HASSAS ITEM ESP FONKSIYONU // --
 local function CreateItemESP(item)
-    if ItemESP_Active and (item:IsA("Tool") or item:IsA("Model")) then
-        task.wait(0.2)
-        if not item:FindFirstChild("ItemHighlight") then
-            local hl = Instance.new("Highlight", item)
-            hl.Name = "ItemHighlight"
-            hl.FillColor = Color3.fromRGB(0, 255, 0) -- Esyalar Yesil
-            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-        end
+    if not ItemESP_Active then return end
+    
+    -- Sadece gercek esyalari (Parmak, Gorev esyasi vb.) filtrele
+    local isTargetItem = item:IsA("Tool") or 
+                        (item:IsA("Model") and (item.Name:lower():find("finger") or item.Name:lower():find("object")))
+
+    if isTargetItem and not item:FindFirstChild("ItemHighlight") then
+        local hl = Instance.new("Highlight", item)
+        hl.Name = "ItemHighlight"
+        hl.FillColor = Color3.fromRGB(0, 255, 0) -- Sadece esyalar yesil
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     end
 end
 
--- // TAB SECTIONS // --
 MainTab:CreateSection("Gorsel Ayarlar (ESP)")
 
--- OYUNCU ESP TOGGLE
+-- OYUNCU ESP
 MainTab:CreateToggle({
    Name = "Dinamik Oyuncu ESP",
    CurrentValue = false,
@@ -44,37 +47,35 @@ MainTab:CreateToggle({
    end,
 })
 
--- ESYA ESP TOGGLE
+-- ESYA ESP (FIXED)
 MainTab:CreateToggle({
-   Name = "Esya ESP (Parmak/Item)",
+   Name = "Esya ESP (Sadece Parmak/Item)",
    CurrentValue = false,
    Callback = function(Value)
        ItemESP_Active = Value
        if Value then
+           -- Tum haritayi degil, sadece Workspace'teki esya olabilecek seyleri tara
            for _, v in pairs(game.Workspace:GetChildren()) do CreateItemESP(v) end
        else
-           for _, v in pairs(game.Workspace:GetChildren()) do
-               if v:FindFirstChild("ItemHighlight") then v.ItemHighlight:Destroy() end
+           for _, v in pairs(game.Workspace:GetDescendants()) do
+               if v.Name == "ItemHighlight" then v:Destroy() end
            end
        end
    end,
 })
 
--- // OTOMATIK TAKIP (YENI GELENLER ICIN) // --
-game.Workspace.ChildAdded:Connect(function(child)
-    if ItemESP_Active then CreateItemESP(child) end
-end)
+-- // OTOMATIK TAKIP // --
+game.Workspace.ChildAdded:Connect(CreateItemESP)
 
 MainTab:CreateSection("Dovus Ayarlari")
 
--- AUTO BLACK FLASH (V)
 MainTab:CreateToggle({
    Name = "Auto Black Flash (V)",
    CurrentValue = false,
    Callback = function(Value) AutoBF = Value end,
 })
 
--- KLAVYE TETIKLEYICI
+-- V TUSU TETIKLEYICI
 game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
     if not gp and input.KeyCode == Enum.KeyCode.V and AutoBF then
         local vIM = game:GetService("VirtualInputManager")
@@ -85,5 +86,3 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
         vIM:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
     end
 end)
-
-Rayfield:Notify({ Title = "Basarili", Content = "Esya ESP ve Dinamik Takip eklendi!", Duration = 5 })
