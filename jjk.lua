@@ -1,145 +1,110 @@
--- // BY DOGU - PRO-LEGIT V38.0 // --
+-- // JJS DOGU ULTRA V97.0 | FULL STABLE // --
 repeat task.wait() until game:IsLoaded()
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "JJS Dogu Ultra | V38.0",
-   LoadingTitle = "Gecikmesiz V-Combo & Tam Legit Mod!",
+   Name = "JJS Dogu Ultra | V97.0",
+   LoadingTitle = "Görsel ve Savaş Sistemleri Yükleniyor...",
    ConfigurationSaving = { Enabled = false }
 })
 
-local CombatTab = Window:CreateTab("Savaş/Makro", 4483362458)
-local MoveTab = Window:CreateTab("Hareket", 4483362458)
-local VisualTab = Window:CreateTab("Görsel", 4483362458)
-
 local lp = game.Players.LocalPlayer
-local ESP_Active, ESP_Color = false, Color3.fromRGB(255, 0, 0)
-local SelectedChar = "Yuji"
-local AutoBF_Active = false
-local isComboing = false
-local WalkSpeed = 16
+local VIM = game:GetService("VirtualInputManager")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
 
--- // 1. GERÇEK ZAMANLI STUN KONTROLÜ // --
-local function IsStunned()
-    local char = lp.Character
-    if not char then return true end
-    -- JJS'de dayak yerken bu objeler karakterin içine gelir
-    return char:FindFirstChild("Stun") or char:FindFirstChild("RagdollConfig") or char:FindFirstChild("Knockdown")
-end
+-- // AYARLAR // --
+_G.MacroActive = false
+_G.SelectedChar = "Yuji"
+_G.FlySpeed = 150
+_G.Flying = false
+_G.ESP_Enabled = false
 
-local function IsAttacking()
-    local char = lp.Character
-    if not char then return true end
-    -- Skill kullanırken hareket etmeyi engeller
-    return char:FindFirstChild("Action") or char:FindFirstChild("Attacking")
-end
-
--- // 2. HAREKET MOTORU (Geliştirilmiş) // --
-task.spawn(function()
-    game:GetService("RunService").RenderStepped:Connect(function()
-        local char = lp.Character
-        if char and char:FindFirstChild("Humanoid") then
-            if IsStunned() or IsAttacking() then
-                -- EĞER COMBO YİYORSAN VEYA SKİLL ATIYORSAN HIZI SIFIRLA (TAM LEGIT)
-                char.Humanoid.WalkSpeed = 0
-                char.HumanoidRootPart.Velocity = Vector3.new(0,0,0) -- Kaymayı durdurur
-            else
-                -- SADECE SERBESTKEN HIZ HİLESİ ÇALIŞIR
-                char.Humanoid.WalkSpeed = WalkSpeed
-            end
-        end
-    end)
-end)
-
--- // 3. INSTANT 3-CHAIN BLACK FLASH // --
-local ComboSettings = {
-    ["Yuji"] = {t1 = 0.28, t2 = 0.30}, -- Gecikme düşürüldü
-    ["Mahito"] = {t1 = 0.31, t2 = 0.32}
-}
-
-local function DoTripleChain()
-    if isComboing or IsStunned() then return end
-    isComboing = true
-    
-    local vIM = game:GetService("VirtualInputManager")
-    local settings = ComboSettings[SelectedChar]
-    local key = Enum.KeyCode.Three
-    
-    -- VURUM 1 (Anında)
-    vIM:SendKeyEvent(true, key, false, game)
-    task.wait(0.01)
-    vIM:SendKeyEvent(false, key, false, game)
-    
-    task.wait(settings.t1)
-    
-    -- VURUM 2
-    vIM:SendKeyEvent(true, key, false, game)
-    task.wait(0.01)
-    vIM:SendKeyEvent(false, key, false, game)
-    
-    task.wait(settings.t2)
-    
-    -- VURUM 3
-    vIM:SendKeyEvent(true, key, false, game)
-    task.wait(0.01)
-    vIM:SendKeyEvent(false, key, false, game)
-    
-    task.wait(0.3)
-    isComboing = false
-end
-
--- // PANEL // --
-CombatTab:CreateDropdown({
-    Name = "Karakter Seç", 
-    Options = {"Yuji", "Mahito"}, 
-    CurrentOption = {"Yuji"}, 
-    Callback = function(v) SelectedChar = v[1] end
-})
-
-CombatTab:CreateToggle({
-    Name = "Instant Black Flash (V)", 
-    CurrentValue = false, 
-    Callback = function(v) AutoBF_Active = v end
-})
-
-MoveTab:CreateSlider({
-    Name = "Hız (Legit Limit)", 
-    Range = {16, 45}, 
-    Increment = 1, 
-    CurrentValue = 16, 
-    Callback = function(v) WalkSpeed = v end
-})
-
-VisualTab:CreateToggle({
-    Name = "Player ESP", 
-    CurrentValue = false, 
-    Callback = function(v) ESP_Active = v end
-})
-
-VisualTab:CreateColorPicker({
-    Name = "ESP Rengi", 
-    Color = Color3.fromRGB(255, 0, 0), 
-    Callback = function(v) ESP_Color = v end
-})
-
--- TUŞ DİNLEYİCİ
-game:GetService("UserInputService").InputBegan:Connect(function(i, gp)
-    if gp then return end
-    if i.KeyCode == Enum.KeyCode.V and AutoBF_Active then
-        DoTripleChain()
-    end
-end)
-
--- ESP DÖNGÜSÜ
-task.spawn(function()
-    while task.wait(1) do
-        if ESP_Active then
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= lp and p.Character then
-                    local hl = p.Character:FindFirstChild("DoguHL") or Instance.new("Highlight", p.Character)
-                    hl.Name = "DoguHL"; hl.FillColor = ESP_Color; hl.DepthMode = "AlwaysOnTop"
+-- // 👁️ SADE ESP SİSTEMİ // --
+local function UpdateESP()
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= lp and p.Character then
+            local hum = p.Character:FindFirstChild("Humanoid")
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            
+            local tag = p.Character:FindFirstChild("DoguESP")
+            if _G.ESP_Enabled and hum and hrp and hum.Health > 0 then
+                if not tag then
+                    tag = Instance.new("BillboardGui", p.Character)
+                    tag.Name = "DoguESP"
+                    tag.Size = UDim2.new(0, 150, 0, 50)
+                    tag.AlwaysOnTop = true
+                    tag.ExtentsOffset = Vector3.new(0, 3, 0)
+                    
+                    local tl = Instance.new("TextLabel", tag)
+                    tl.Size = UDim2.new(1, 0, 1, 0)
+                    tl.BackgroundTransparency = 1
+                    tl.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    tl.TextStrokeTransparency = 0
+                    tl.TextSize = 14
+                    tl.Font = Enum.Font.SourceSansBold
                 end
+                tag.TextLabel.Text = string.format("%s\n[HP: %d]", p.Name, math.floor(hum.Health))
+            else
+                if tag then tag:Destroy() end
             end
         end
     end
-end)
+end
+
+-- // ⚡ BF MAKROSU // --
+local function DoBF()
+    local delayTime = (_G.SelectedChar == "Yuji" and 0.28 or 0.32)
+    for i = 1, 3 do
+        VIM:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
+        task.wait(0.01)
+        VIM:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
+        task.wait(delayTime)
+    end
+end
+
+-- // 🛠️ PANEL // --
+local Main = Window:CreateTab("Savaş")
+local Vis = Window:CreateTab("Görsel")
+local Move = Window:CreateTab("Hareket")
+
+Main:CreateToggle({Name = "Black Flash Makrosu (V)", CurrentValue = false, Callback = function(v) _G.MacroActive = v end})
+Main:CreateDropdown({Name = "Karakter", Options = {"Yuji", "Mahito"}, CurrentOption = {"Yuji"}, Callback = function(v) _G.SelectedChar = v[1] end})
+
+Vis:CreateToggle({Name = "Oyuncu ESP & Can", CurrentValue = false, Callback = function(v) _G.ESP_Enabled = v end})
+
+Move:CreateSlider({Name = "Uçma Hızı", Range = {50, 500}, Increment = 10, CurrentValue = 150, Callback = function(v) _G.FlySpeed = v end})
+
+-- // ✈️ WASD UÇUŞ MOTORU // --
+local function GetMoveVec()
+    local vec = Vector3.new(0,0,0)
+    local cam = workspace.CurrentCamera
+    if UIS:IsKeyDown(Enum.KeyCode.W) then vec = vec + cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.S) then vec = vec - cam.CFrame.LookVector end
+    if UIS:IsKeyDown(Enum.KeyCode.A) then vec = vec - cam.CFrame.LookVector:Cross(Vector3.new(0,1,0)) end
+    if UIS:IsKeyDown(Enum.KeyCode.D) then vec = vec + cam.CFrame.LookVector:Cross(Vector3.new(0,1,0)) end
+    if UIS:IsKeyDown(Enum.KeyCode.Space) then vec = vec + Vector3.new(0,1,0) end
+    if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then vec = vec - Vector3.new(0,1,0) end
+    return vec.Magnitude > 0 and vec.Unit or Vector3.new(0,0,0)
+end
+
+-- Input İşlemleri
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.V and _G.MacroActive then DoBF() end
+    if input.KeyCode == Enum.KeyCode.H then
+        _G.Flying = not _G.Flying
+        local hrp = lp.Character:FindFirstChild("HumanoidRootPart")
+        if _G.Flying and hrp then
+            local bv = Instance.new("BodyVelocity", hrp)
+            bv.MaxForce = Vector3.new(1,1,1) * 1e6
+            local bg = Instance.new("BodyGyro", hrp)
+            bg.MaxTorque = Vector3.new(1,1,1) * 1e6
+            task.spawn(function()
+                while _G.Flying and hrp and hrp.Parent do
+                    bv.Velocity = GetMoveVec() * _G.FlySpeed
+                    bg.CFrame = workspace.CurrentCamera.CFrame
+                    task.wait()
+                end
+                bv:Destroy() bg:Destroy()
+            end)
